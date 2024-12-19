@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "gpt1-backend"
+version = "0.1.0"
+description = ""
+authors = ["Hamza Qureshi <bc220407660mhq@vu.edu.pk>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+fastapi = "^0.115.6"
+uvicorn = "^0.34.0"
+pydantic = "^2.10.4"
+concurrent-log-handler = "^0.9.25"
+langchain = "^0.3.13"
+openai = "^1.58.1"
+gemini-python = "^0.2.1"
+langchain-google-genai = "^2.0.7"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
