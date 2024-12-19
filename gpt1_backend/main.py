@@ -73,6 +73,10 @@ def fetch_subtask_data_sync(subtask: str, context: str = None, detailed: bool = 
         return {"subtask": subtask, "result": response.content}
     except Exception as e:
         return {"subtask": subtask, "error": str(e)}
+    
+@app.get("/debug")
+async def debug_env():
+    return {"GEMINI_API_KEY": GEMINI_API_KEY}
 
 # Endpoint: Handle User Query
 @app.post("/query")
