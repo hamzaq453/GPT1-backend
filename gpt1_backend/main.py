@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List
+from typing import List, Dict
 import concurrent.futures
 from concurrent.futures import ThreadPoolExecutor
 from dotenv import load_dotenv
@@ -35,12 +35,13 @@ llm = ChatGoogleGenerativeAI(
     temperature=0.2
 )
 
-# Conversation context (shared for now, could be scoped to users)
-context_memory = []
+# Memory storage: key is thread_id, value is a list of context strings
+conversation_memory: Dict[str, List[str]] = {}
 
 # Request model
 class QueryRequest(BaseModel):
     query: str
+    thread_id: str  # Unique identifier for the user session
     context_enabled: bool = False
     detailed: bool = False  # Optional flag to request detailed responses
 
@@ -81,10 +82,13 @@ async def debug_env():
 # Endpoint: Handle User Query
 @app.post("/query")
 async def handle_query(request: QueryRequest):
-    global context_memory
+    # Retrieve or initialize memory for the thread_id
+    thread_id = request.thread_id
+    if thread_id not in conversation_memory:
+        conversation_memory[thread_id] = []
 
     # Determine context usage
-    context = context_memory[-1] if request.context_enabled and context_memory else None
+    context = conversation_memory[thread_id][-1] if request.context_enabled and conversation_memory[thread_id] else None
 
     # Decompose query
     subtasks = decompose_query_with_context(request.query)
@@ -113,8 +117,17 @@ async def handle_query(request: QueryRequest):
         [result["result"] for result in results if "result" in result]
     )
 
-    # Update context memory
-    context_memory.append(final_response)
+    # Update conversation memory
+    conversation_memory[thread_id].append(final_response)
 
     # Return final response
-    return {"response": final_response, "subtasks": results}
+    return {"response": final_response, "subtasks": results, "memory": conversation_memory[thread_id]}
+
+# Endpoint to clear memory for a specific thread
+@app.post("/clear_memory")
+async def clear_memory(thread_id: str):
+    if thread_id in conversation_memory:
+        del conversation_memory[thread_id]
+        return {"status": "success", "message": f"Memory for thread {thread_id} cleared."}
+    else:
+        return {"status": "error", "message": f"No memory found for thread {thread_id}."}
